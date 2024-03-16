@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "pyacddb"
+version = "0.0.1"
+description = ""
+authors = ["jannisborn <jannis.born@gmx.de>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+marimo = "^0.2.13"
+pandas = "^2.2.1"
+numpy = "^1.26.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
