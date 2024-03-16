@@ -52,7 +52,3 @@ def extract_keywords(path: str, fields: List[str] = DEFAULT_FIELDS):
     for tag in unique_tags:
         assets_df[tag] = assets_df["Tags"].apply(lambda x: tag in x)
     return assets_df
-
-
-df = extract_keywords("data.xml")
-df.to_csv("data_tmp.csv", encoding="utf-8-sig")
