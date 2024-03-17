@@ -1,7 +1,7 @@
 import json
 import os
 
-from core import ACDReceive
+from acdreceive.core import ACDReceive
 
 
 def main():

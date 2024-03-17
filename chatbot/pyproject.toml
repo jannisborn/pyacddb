@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "acdseebot"
+name = "acdreceive"
 version = "0.1.0"
 description = ""
 authors = ["jannisborn <jannis.born@gmx.de>"]
@@ -7,12 +7,13 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9.2"
 requests = "^2.31.0"
 pyacddb = {path = ".."}
 loguru = "^0.7.2"
 pandas = "^2.2.1"
 python-telegram-bot = "13.7"
+black = "^24.3.0"
 
 
 [build-system]

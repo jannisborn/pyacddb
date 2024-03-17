@@ -11,8 +11,8 @@ from loguru import logger
 from telegram import Message, Update
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
-from llm import INSTRUCTION_MESSAGE, LLM
-from metadata import IMAGE_FORMATS, VIDEO_FORMATS
+from .llm import INSTRUCTION_MESSAGE, LLM
+from .metadata import IMAGE_FORMATS, VIDEO_FORMATS
 
 
 class ACDReceive:
