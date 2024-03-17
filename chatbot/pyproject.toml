@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "acdseebot"
+version = "0.1.0"
+description = ""
+authors = ["jannisborn <jannis.born@gmx.de>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.31.0"
+pyacddb = {path = ".."}
+loguru = "^0.7.2"
+pandas = "^2.2.1"
+python-telegram-bot = "13.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
