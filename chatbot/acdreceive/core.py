@@ -76,7 +76,10 @@ class ACDReceive:
             response_message = update.message.reply_text(
                 INSTRUCTION_MESSAGE, parse_mode="Markdown"
             )
-            context.bot.unpin_all_chat_messages(chat_id=update.message.chat_id)
+            try:
+                context.bot.unpin_all_chat_messages(chat_id=update.message.chat_id)
+            except Exception:
+                logger.warning("Failed to unpin messages")
             context.bot.pin_chat_message(
                 chat_id=update.message.chat_id,
                 message_id=response_message.message_id,

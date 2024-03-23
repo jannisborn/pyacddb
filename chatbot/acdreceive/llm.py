@@ -6,7 +6,7 @@ INSTRUCTION_MESSAGE = """
 Du kannst Fotos anfragen indem du mir einen oder mehrere Tags sendest. Ich werde dann
 die entsprechenden Fotos aus der Datenbank suchen. Schreib zum Beispiel:
 
-\t`Kunst`\tum alle Fotos zu sehen die den Tag `Kunst` enthalten.
+\t`Kurioses`\tum alle kuriosen Fotos zu sehen.
 
 Oder schreib:
 \t`Micha Jannis`\tund ich werde dir alle Fotos zeigen auf denen Micha UND Jannis sind.
