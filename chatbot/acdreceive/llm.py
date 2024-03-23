@@ -3,12 +3,17 @@ from copy import deepcopy
 import requests
 
 INSTRUCTION_MESSAGE = """
-Du kannst Fotos anfragen indem du mir einen oder mehrere Tags sendest. Ich werde dann eine AND
-Verknüpfung der Tags bilden und die entsprechenden Fotos aus der Datenbank suchen. Schreib zum Beispiel:
-`Micha Jannis` und ich werde dir alle Fotos zeigen auf denen Micha und Jannis sind.
-Wenn ein einzelner Tag ein Leerzeichen enthält, dann schreibe ihn in Anführungszeichen, z.B.:
-`"Flüsse,Seen" Micha` um alle Fotos zu sehen, die Flüsse, Seen und Micha enthalten.
-Du kannst einzelne Tags verwenden oder beliebig viele kombinieren.
+Du kannst Fotos anfragen indem du mir einen oder mehrere Tags sendest. Ich werde dann
+die entsprechenden Fotos aus der Datenbank suchen. Schreib zum Beispiel:
+
+\t`Kunst`\tum alle Fotos zu sehen die den Tag `Kunst` enthalten.
+
+Oder schreib:
+\t`Micha Jannis`\tund ich werde dir alle Fotos zeigen auf denen Micha UND Jannis sind.
+
+Wenn ein einzelner Tag ein Leerzeichen enthält, dann schreib ihn in Anführungszeichen, z.B.:
+\t`"Münster Kemperweg" Micha`\tum alle Fotos zu sehen, die Micha am Kemperweg zeigen.
+Du kannst beliebig viele Tags kombinieren.
 
 Um eine Übersicht zu sehen welche Tags verfügbar sind, schreibe einfach `Tags`!
 Viel Spass!🥳

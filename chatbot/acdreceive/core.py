@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from collections import defaultdict
 from datetime import datetime
@@ -13,6 +14,7 @@ from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 from .llm import INSTRUCTION_MESSAGE, LLM
 from .metadata import IMAGE_FORMATS, VIDEO_FORMATS
+from .utils import parse_tags
 
 
 class ACDReceive:
@@ -135,7 +137,7 @@ class ACDReceive:
             user_id = update.message.from_user.id
             # Parse the message
             message = update.message.text.lower()
-            tags = message.split()
+            tags = parse_tags(message)
             query = (
                 " ".join([t.capitalize() + " AND " for t in tags[:-1]])
                 + tags[-1].capitalize()
@@ -145,6 +147,11 @@ class ACDReceive:
             if len(image_names) == 0:
                 self.return_message(update, f"Null Ergebnisse für Anfrage: {query}!")
                 return
+            elif len(image_names) == len(self.db):
+                self.return_message(
+                    update,
+                    "Das hat nicht geklappt. Probier's nochmal mit einer anderen Anfrage!",
+                )
             elif len(image_names) > self.max_images:
                 self.return_message(
                     update,
