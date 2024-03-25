@@ -90,7 +90,7 @@ class ACDReceive:
         return False
 
     def return_message(self, update: Update, text: str) -> Message:
-        return update.message.reply_text(text, parse_mode="Markdown")
+        return update.message.reply_text(text)
 
     def handle_text_message(self, update, context):
 
@@ -141,6 +141,7 @@ class ACDReceive:
             # Parse the message
             message = update.message.text.lower()
             tags = parse_tags(message)
+            logger.info(f"Searching for {tags}")
             query = (
                 " ".join([t.capitalize() + " AND " for t in tags[:-1]])
                 + tags[-1].capitalize()
