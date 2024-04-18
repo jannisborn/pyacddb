@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from random import random
-from typing import List
+from typing import Any, Dict, List
 
 import pandas as pd
 import telegram
@@ -12,18 +12,26 @@ from loguru import logger
 from telegram import Message, Update
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
+from .dataclient import Client
 from .llm import INSTRUCTION_MESSAGE, LLM
 from .metadata import IMAGE_FORMATS, VIDEO_FORMATS
 from .utils import parse_tags
 
 
 class ACDReceive:
-    def __init__(
-        self, db_path: str, storage_path: str, telegram_token: str, anyscale_token: str
-    ):
+    def __init__(self, db_path: str, storage_path: str, secrets: Dict[str, Any]):
+        """
+        Initialize the bot with the given tokens and paths.
+
+        Args:
+            db_path: Path to the metadata file
+            storage_path: Path to the directory containing the images. This can be a
+                local directory or a cloud storage bucket.
+            secrets: A dictionary containing the Telegram and AnyScale tokens
+        """
         # Load tokens and initialize variables
-        self.telegram_token = telegram_token
-        self.anyscale_token = anyscale_token
+        self.telegram_token = secrets["telegram"]
+        self.anyscale_token = secrets["anyscale"]
 
         # Initialize language preferences dictionary
         self.user_prefs = defaultdict(dict)
@@ -43,6 +51,23 @@ class ACDReceive:
         )
         self.db_setup(db_path)
         self.max_images = 10
+        if (
+            storage_path.startswith("gs://")
+            or storage_path.startswith("s3://")
+            or storage_path.startswith("http")
+        ):
+            self.storage = "cloud"
+            self.get_medium = self.get_medium_cloud
+            self.data_client = Client(
+                host=storage_path,
+                root=secrets["smartdrive-root"],
+                username=secrets["smartdrive-login"],
+                password=secrets["smartdrive-password"],
+            )
+        else:
+            self.storage = "local"
+            self.get_medium = self.get_medium_local
+
         self.data_path = storage_path
 
     def db_setup(self, db_path: str):
@@ -171,6 +196,16 @@ class ACDReceive:
             response = f"An error occurred: {e}"
             self.return_message(update, response)
 
+    def get_medium_local(self, path: str):
+        """Reads a file from local storage and returns its content."""
+        with open(os.path.join(self.data_path, path), "rb") as medium:
+            return medium
+
+    def get_medium_cloud(self, path: str):
+        """Retrieves file content from cloud storage and returns it."""
+        content = self.data_client.get_file_content(path)
+        return content
+
     def display_results(self, update, context, data_paths: List[str]):
         self.return_message(update, f"Here are the {len(data_paths)} results!")
         # Send each image to the chat
@@ -192,20 +227,23 @@ class ACDReceive:
                 self.return_message(update, f"Video {path} not in storage")
                 continue
 
-            with open(os.path.join(self.data_path, path), "rb") as medium:
-                if file_extension in IMAGE_FORMATS:
-                    context.bot.send_photo(
-                        chat_id=update.message.chat_id, photo=medium, caption=text
-                    )
-                # elif file_extension in VIDEO_FORMATS:
-                #     self.return_message(
-                #         update, f"Video {file_extension}"
-                #     )
-                #     context.bot.send_video(chat_id=update.message.chat_id, video=medium)
-                else:
-                    self.return_message(
-                        update, f"Unsupported file format: {file_extension}"
-                    )
+            medium = self.get_medium(path)
+            if medium is None:
+                self.return_message(update, f"Failed to retrieve {path}")
+                continue
+            if file_extension in IMAGE_FORMATS:
+                context.bot.send_photo(
+                    chat_id=update.message.chat_id, photo=medium, caption=text
+                )
+            # elif file_extension in VIDEO_FORMATS:
+            #     self.return_message(
+            #         update, f"Video {file_extension}"
+            #     )
+            #     context.bot.send_video(chat_id=update.message.chat_id, video=medium)
+            else:
+                self.return_message(
+                    update, f"Unsupported file format: {file_extension}"
+                )
 
     def lookup(self, update, tags: List[str]) -> List[str]:
 
