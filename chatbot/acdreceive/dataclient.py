@@ -20,6 +20,7 @@ class Client:
         response = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
 
         if response.status_code == 200:
+            logger.debug(f'Loaded file {url}')
             return response.content
         else:
             logger.error(
