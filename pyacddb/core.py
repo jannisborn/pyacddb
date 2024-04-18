@@ -40,11 +40,23 @@ def extract_keywords(path: str, fields: List[str] = DEFAULT_FIELDS):
                 f".//Asset[Name='{asset_dict['Name']}']//AssetCategory"
             )
         ]
-        tags = [a.split("\\")[-1] for a in asset_categories]
+        asset_keywords = [
+            strip(ak.text)
+            for ak in root.findall(
+                f".//Asset[Name='{asset_dict['Name']}']//AssetKeyword"
+            )
+        ]
+        tags = [a.split("\\")[-1] for a in asset_categories] + asset_keywords
         unique_tags.update(tags)
 
         # Update the asset dictionary with categories and tags
-        asset_dict.update({"AssetCategories": asset_categories, "Tags": tags})
+        asset_dict.update(
+            {
+                "AssetCategories": asset_categories,
+                "AssetKeywords": asset_keywords,
+                "Tags": tags,
+            }
+        )
         assets.append(asset_dict)
 
     assets_df = pd.DataFrame(assets)
