@@ -76,6 +76,8 @@ class ACDReceive:
         db["FileType"] = db["FileType"].str.lower()
         self.tags = list(db.columns)[list(db.columns).index("Tags") + 1 :]
         db.columns = db.columns.str.lower()
+        db = db.rename(columns={"name": "Name"})  # to avoid conflict with build-in
+        db = db[~db.filetype.isin(["ordner", "xmp files"])]
 
         if any(
             [x not in IMAGE_FORMATS and x not in VIDEO_FORMATS for x in db["filetype"]]
@@ -142,24 +144,32 @@ class ACDReceive:
             return
         elif message == "tags":
             update.message.reply_text(
-                f"Die aktuelle Datenbank hat {len(self.db)} Einträge"
+                f"Die aktuelle Datenbank hat {len(self.db)} Einträge und {len(self.tags)} tags"
             )
-            time.sleep(1)
-            update.message.reply_text(
-                "Die verfügbaren Tags sind:\n\n"
-                + "\n".join(
-                    [
-                        f"`{tag}`: {len(self.db[self.db[tag.lower().strip()]])} Einträge"
-                        for tag in self.tags
-                    ]
-                ),
-            )
+            time.sleep(0.6)
+            self.send_tag_distribution(update)
             return
 
         self.search_tags_in_db(update, context)
 
+    def send_tag_distribution(self, update):
+        message_buffer = "Die verfügbaren Tags und ihre Verbreitung:\n\n"
+        for tag in self.tags:
+            tag_info = f"{tag}: {len(self.db[self.db[tag.lower().strip()]])}\n"
+
+            # Check if adding this tag info will exceed the limit
+            if len(message_buffer) + len(tag_info) > 1000:
+                update.message.reply_text(message_buffer)
+                message_buffer = ""  # Reset the buffer after sending
+
+            message_buffer += tag_info
+
+        # Send any remaining text in the buffer
+        if message_buffer:
+            update.message.reply_text(message_buffer)
+
     def search_tags_in_db(self, update, context):
-        """Search for a coin in the database when a message is received."""
+        """Search for tags in the database when a message is received."""
 
         try:
             user_id = update.message.from_user.id
@@ -172,26 +182,26 @@ class ACDReceive:
                 + tags[-1].capitalize()
             )
 
-            image_names = self.lookup(update, tags)
-            if len(image_names) == 0:
+            result_df = self.lookup(update, tags)
+            if len(result_df) == 0:
                 self.return_message(update, f"Null Ergebnisse für Anfrage: {query}!")
                 return
-            elif len(image_names) == len(self.db):
+            elif len(result_df) == len(self.db):
                 self.return_message(
                     update,
                     "Das hat nicht geklappt. Probier's nochmal mit einer anderen Anfrage!",
                 )
-            elif len(image_names) > self.max_images:
+            elif len(result_df) > self.max_images:
                 self.return_message(
                     update,
-                    f"{len(image_names)} Ergebnisse gefunden! Willst du sie alle sehen?",
+                    f"{len(result_df)} Ergebnisse gefunden! Willst du sie alle sehen?",
                 )
 
                 self.user_prefs[user_id]["collecting_displayall"] = True
-                self.user_prefs[user_id]["imgs"] = image_names
+                self.user_prefs[user_id]["imgs"] = result_df
                 return
             else:
-                self.display_results(update, context, image_names)
+                self.display_results(update, context, result_df)
 
         except Exception as e:
             response = f"An error occurred: {e}"
@@ -207,19 +217,19 @@ class ACDReceive:
         content = self.data_client.get_file_content(path)
         return content
 
-    def display_results(self, update, context, data_paths: List[str]):
-        self.return_message(update, f"Here are the {len(data_paths)} results!")
+    def display_results(self, update, context, result_df: pd.DataFrame):
+        self.return_message(update, f"Here are the {len(result_df)} results!")
         # Send each image to the chat
-        for path in data_paths:
+        for i, row in result_df.iterrows():
+            path = row.folder.split("Public\Fotos\\")[-1] + row.Name
             _, file_extension = os.path.splitext(path)
             file_extension = file_extension[1:].lower()
-            row = self.db[self.db["name"] == path]
             text = ""
             if not row.empty:
-                text += row["caption"].iloc[0]
-                text += f" (von {row['author'].iloc[0].split(' ')[0]}"
+                text += str(row["caption"])
+                text += f" (von {row['author'].split(' ')[0]}"
 
-                db_date_str = row["dbdate"].iloc[0]
+                db_date_str = row["dbdate"]
                 db_date = datetime.strptime(db_date_str, "%Y%m%d %H:%M:%S.%f")
                 nice_date = db_date.strftime("%d.%m.%Y %H:%M")
                 text += f" am {nice_date})"
@@ -246,8 +256,9 @@ class ACDReceive:
                     update, f"Unsupported file format: {file_extension}"
                 )
 
-    def lookup(self, update, tags: List[str]) -> List[str]:
-
+    def lookup(self, update, tags: List[str]) -> pd.DataFrame:
+        # TODO: Lookup with caption like this:
+        # Micha Agnes Cosy Caption: schön
         df = self.db
 
         for tag in tags:
@@ -263,7 +274,7 @@ class ACDReceive:
                 f"Tag {tag.capitalize()} gefunden, jetzt noch {len(df)} Einträge.",
             )
 
-        return list(df["name"])
+        return df
 
     def run(self):
         logger.info("Starting bot")

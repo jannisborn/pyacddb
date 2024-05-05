@@ -16,11 +16,12 @@ class Client:
 
     def get_file_content(self, remote_path: str):
         """Downloads file content directly into memory."""
+        remote_path = remote_path.replace("\\", "/")
         url = os.path.join(self.data_root, remote_path)
         response = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
 
         if response.status_code == 200:
-            logger.debug(f'Loaded file {url}')
+            logger.debug(f"Loaded file {url}")
             return response.content
         else:
             logger.error(
