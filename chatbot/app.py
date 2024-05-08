@@ -9,7 +9,7 @@ def main():
     with open(os.path.join(os.path.dirname(__file__), "secrets.json"), "r") as f:
         secrets = json.load(f)
 
-    metadata_path = "db.csv"
+    metadata_path = "wholedb.csv"
     storage_path = "imgs"
     storage_path = secrets["smartdrive-host"]
 

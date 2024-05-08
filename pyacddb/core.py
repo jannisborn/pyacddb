@@ -2,6 +2,8 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
 
 import pandas as pd
+from loguru import logger
+from tqdm import tqdm
 
 from pyacddb.metadata import DEFAULT_FIELDS
 from pyacddb.utils import strip
@@ -20,7 +22,12 @@ def field_items_from_root(
 
 
 def field_from_item(item: str, field: str):
-    return strip(item.find(field).text) if item.find(field) is not None else None
+    value = item.find(field)
+    if value is None:
+        return None
+    if value.text is None:
+        return None
+    return strip(value.text)
 
 
 def extract_keywords(path: str, fields: List[str] = DEFAULT_FIELDS):
@@ -31,8 +38,8 @@ def extract_keywords(path: str, fields: List[str] = DEFAULT_FIELDS):
     unique_tags = set()
 
     asset_items = field_items_from_root(root, "Asset", fields)
-
-    for asset_dict in asset_items:
+    logger.info(f"Identified {len(asset_items)} items")
+    for asset_dict in tqdm(asset_items, total=len(asset_items)):
         # Extract asset categories directly within this loop
         asset_categories = [
             strip(ac.text)
