@@ -171,7 +171,6 @@ class ACDReceive:
 
         try:
             user_id = update.message.from_user.id
-            print("ALL", user_id, self.user_prefs[user_id].keys())
             # Parse the message
             message = update.message.text.lower()
             tags = parse_tags(message)
@@ -182,7 +181,7 @@ class ACDReceive:
             )
 
             result_df = self.lookup(update, tags)
-            self.user_prefs[user_id]["current_result"] = result_df
+            result_df = result_df.sample(frac=1)
             if len(result_df) == 0:
                 self.return_message(update, f"Null Ergebnisse für Anfrage: {query}!")
                 return
@@ -192,10 +191,13 @@ class ACDReceive:
                     "Das hat nicht geklappt. Probier's nochmal mit einer anderen Anfrage!",
                 )
             else:
-                self.return_message(
-                    update,
-                    f"{len(result_df)} Ergebnisse, hier sind die ersten {self.PAGESIZE}",
-                )
+                self.user_prefs[user_id]["current_result"] = result_df
+                l = len(result_df)
+                if l > self.PAGESIZE:
+                    msg = f"{l} Ergebnisse, hier sind die ersten {self.PAGESIZE}"
+                else:
+                    msg = f"Hier sind die {l} Ergebnisse"
+                self.return_message(update, msg)
                 self.keep_displaying_results(update, context, user_id)
 
         except Exception as e:
@@ -229,8 +231,6 @@ class ACDReceive:
             text = ""
             if not row.empty:
                 text += str(row["caption"])
-                logger.debug(f"AUTHOR {row.author} and {type(row.author)}")
-
                 text += (
                     f" (von {row['author'].split(' ')[0]} "
                     if isinstance(row.author, str)
