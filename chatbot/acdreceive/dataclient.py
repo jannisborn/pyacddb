@@ -3,6 +3,8 @@ import os
 import requests
 from loguru import logger
 from requests.auth import HTTPBasicAuth
+from PIL import Image
+import io
 
 
 class Client:
@@ -21,9 +23,40 @@ class Client:
         response = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
 
         if response.status_code == 200:
+            size = len(response.content) / (1024**2)
+            logger.info(f"Retrieved file {remote_path} of size {size:.3f} MB")
+            if size > 5:
+                logger.info("Image is larger than 5MB, downscaling...")
+                content = self.downscale_image(response.content)
+                size_bytes = len(content)
+                size_mb = size_bytes / (1024 * 1024)
+                logger.info(f"Downscaled image size: {size_mb:.2f} MB")
+
             return response.content
         else:
             logger.error(
                 f"Failed to retrieve file {remote_path}: {response.status_code}"
             )
             return None
+
+    def downscale_image(self, image_content):
+        """Downscale the image to approximately 4MB."""
+        image = Image.open(io.BytesIO(image_content))
+
+        # Convert image to RGB if it is not already in that mode
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        quality = 85
+        while True:
+            buffer = io.BytesIO()
+            image.save(buffer, format="JPEG", quality=quality)
+            size_bytes = buffer.tell()
+            size_mb = size_bytes / (1024 * 1024)
+
+            if size_mb <= 4 or quality <= 20:
+                break
+
+            quality -= 5
+
+        return buffer.getvalue()
