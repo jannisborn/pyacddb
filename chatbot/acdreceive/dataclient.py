@@ -24,9 +24,9 @@ class Client:
 
         if response.status_code == 200:
             size = len(response.content) / (1024**2)
-            logger.info(f"Retrieved file {remote_path} of size {size:.3f} MB")
+            logger.debug(f"Retrieved file {remote_path} of size {size:.3f} MB")
             if size > 5:
-                logger.info("Image is larger than 5MB, downscaling...")
+                logger.info(f"Image {remote_path} is larger than 5MB, downscaling...")
                 content = self.downscale_image(response.content)
                 size_bytes = len(content)
                 size_mb = size_bytes / (1024 * 1024)
