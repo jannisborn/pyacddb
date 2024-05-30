@@ -23,16 +23,19 @@ class Client:
         response = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
 
         if response.status_code == 200:
-            size = len(response.content) / (1024**2)
+            content = response.content
+            size = len(content) / (1024**2)
             logger.debug(f"Retrieved file {remote_path} of size {size:.3f} MB")
             if size > 5:
-                logger.info(f"Image {remote_path} is larger than 5MB, downscaling...")
+                logger.info(
+                    f"Image {remote_path} is larger than 5MB ({size:.3f}), downscaling..."
+                )
                 content = self.downscale_image(response.content)
                 size_bytes = len(content)
                 size_mb = size_bytes / (1024 * 1024)
                 logger.info(f"Downscaled image size: {size_mb:.2f} MB")
 
-            return response.content
+            return content
         else:
             logger.error(
                 f"Failed to retrieve file {remote_path}: {response.status_code}"
