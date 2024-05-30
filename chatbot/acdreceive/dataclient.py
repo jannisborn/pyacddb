@@ -1,10 +1,10 @@
+import io
 import os
 
 import requests
 from loguru import logger
-from requests.auth import HTTPBasicAuth
 from PIL import Image
-import io
+from requests.auth import HTTPBasicAuth
 
 
 class Client:
