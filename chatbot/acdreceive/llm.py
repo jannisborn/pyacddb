@@ -15,6 +15,10 @@ Wenn ein einzelner Tag ein Leerzeichen enthält, dann schreib ihn in Anführungs
 \t`"Münster Kemperweg" Micha`\tum alle Fotos zu sehen, die Micha am Kemperweg zeigen.
 Du kannst beliebig viele Tags kombinieren.
 
+Um ebenfalls die Caption der Bilder zu benutzen, benutze `cap:`:
+\t`Micha Cap: Garten`\t zeigt alle Bilder mit dem Tag Micha deren Caption den String
+`Garten` enthält.
+
 Um eine Übersicht zu sehen welche Tags verfügbar sind, schreibe einfach `Tags`!
 Viel Spass!🥳
 """

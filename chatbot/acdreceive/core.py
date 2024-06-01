@@ -87,6 +87,7 @@ class ACDReceive:
         db.columns = db.columns.str.lower()
         db = db.rename(columns={"name": "Name"})  # to avoid conflict with build-in
         db = db[~db.filetype.isin(["ordner", "xmp files"])]
+        db["caption"] = db["caption"].fillna("")
 
         if any(
             [x not in IMAGE_FORMATS and x not in VIDEO_FORMATS for x in db["filetype"]]
@@ -173,17 +174,20 @@ class ACDReceive:
             user_id = update.message.from_user.id
             # Parse the message
             message = update.message.text.lower()
-            tags = parse_tags(message)
-            logger.info(f"Searching for {tags}")
+            tags, caption = parse_tags(message)
+            logger.info(f"Searching for {tags} with caption {caption}")
             query = (
                 " ".join([t.capitalize() + " AND " for t in tags[:-1]])
-                + tags[-1].capitalize()
+                + (tags[-1].capitalize() if len(tags) > 0 else "")
+                + f"; Caption: {caption}"
+                if caption != ""
+                else ""
             )
 
-            result_df = self.lookup(update, tags)
+            result_df = self.lookup(update, tags, caption)
             result_df = result_df.sample(frac=1)
             if len(result_df) == 0:
-                self.return_message(update, f"Null Ergebnisse für Anfrage: {query}!")
+                self.return_message(update, f"Null Ergebnisse für Anfrage: {query}")
                 return
             elif len(result_df) == len(self.db):
                 self.return_message(
@@ -274,9 +278,7 @@ class ACDReceive:
         else:
             update.message.reply_text("Das war alles 🙂")
 
-    def lookup(self, update, tags: List[str]) -> pd.DataFrame:
-        # TODO: Lookup with caption like this:
-        # Micha Agnes Cosy Caption: schön
+    def lookup(self, update, tags: List[str], caption: str) -> pd.DataFrame:
         df = self.db
 
         for tag in tags:
@@ -291,6 +293,11 @@ class ACDReceive:
                 update,
                 f"Tag {tag.capitalize()} gefunden, jetzt noch {len(df)} Einträge.",
             )
+        # Now check for caption
+        if caption == "":
+            return df
+
+        df = df[df.caption.str.lower().str.contains(caption.lower())]
 
         return df
 

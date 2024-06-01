@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Tuple
 
 
 def standardize_quotes(text: str) -> str:
@@ -19,7 +19,7 @@ def standardize_quotes(text: str) -> str:
     return text
 
 
-def parse_tags(message: str) -> List[str]:
+def parse_tags(message: str) -> Tuple[List[str], str]:
     """
     Parse a message into a list of tags, handling both quoted and unquoted tags.
     Quoted tags can include spaces, and all quotes are standardized before parsing.
@@ -29,6 +29,7 @@ def parse_tags(message: str) -> List[str]:
 
     Returns:
         List[str]: A list of tags extracted from the message.
+        str: The caption to search for. Might be '' if no caption was detected.
     """
     # Standardize quotes in the message first
     message = standardize_quotes(message)
@@ -41,4 +42,10 @@ def parse_tags(message: str) -> List[str]:
     # and the unquoted text in the second position. We join these and filter out empty strings.
     tags = [quoted or unquoted for quoted, unquoted in matches]
 
-    return tags
+    cap = ""
+    for i, tag in enumerate(tags):
+        if tag.lower() == "cap:":
+            cap = " ".join(tags[i + 1 :])
+            tags = tags[:i]
+            break
+    return tags, cap
