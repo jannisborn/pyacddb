@@ -91,7 +91,6 @@ class ACDReceive:
         db["year"] = pd.to_datetime(db["dbdate"]).dt.year
         db["month"] = pd.to_datetime(db["dbdate"]).dt.month
         db["day"] = pd.to_datetime(db["dbdate"]).dt.day
-        db.to_csv("debug.csv")
 
         if any(
             [x not in IMAGE_FORMATS and x not in VIDEO_FORMATS for x in db["filetype"]]
@@ -196,24 +195,15 @@ class ACDReceive:
         end_year = int(end_date[:4])
         end_month = int(end_date[4:6]) if len(end_date) > 4 else 12
         end_day = int(end_date[6:]) if len(end_date) > 6 else 31
-
         # Create a boolean mask to filter DataFrame rows within the date range
         mask = (
             (df["year"] >= start_year)
-            | ((df["year"] >= start_year) & (df["month"] >= start_month))
-            | (
-                (df["year"] >= start_year)
-                & (df["month"] >= start_month)
-                & (df["day"] >= start_day)
-            )
+            & (df["month"] >= start_month)
+            & (df["day"] >= start_day)
         ) & (
             (df["year"] <= end_year)
-            | ((df["year"] <= end_year) & (df["month"] <= end_month))
-            | (
-                (df["year"] <= end_year)
-                & (df["month"] <= end_month)
-                & (df["day"] <= end_day)
-            )
+            & (df["month"] <= end_month)
+            & (df["day"] <= end_day)
         )
 
         return df[mask]
