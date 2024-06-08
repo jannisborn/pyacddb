@@ -15,9 +15,21 @@ Wenn ein einzelner Tag ein Leerzeichen enthält, dann schreib ihn in Anführungs
 \t`"Münster Kemperweg" Micha`\tum alle Fotos zu sehen, die Micha am Kemperweg zeigen.
 Du kannst beliebig viele Tags kombinieren.
 
-Um ebenfalls die Caption der Bilder zu benutzen, benutze `cap:`:
+Um ebenfalls die Caption der Bilder zu benutzen, benutze `cap: `:
 \t`Micha Cap: Garten`\t zeigt alle Bilder mit dem Tag Micha deren Caption den String
 `Garten` enthält.
+
+Um ebenfalls die Daten der Bilder zu durchsuchen benutze `date: `:
+\t`Haus Date: 1910-1950`\t zeigt alle Bilder mit dem Tag Haus zwischen 1910 und 1950 (inklusive)
+Verwende immer einen einzelnen Trennstrich zwischen Start- und Enddatum.
+
+`date:` und `cap:` lassen sich beliebig mit der "normalen" Tagsuche kombinieren, aber achte
+darauf immer ein Leerzeichen nach dem Doppelpunkt zu lassen. Ein komplexeres Beispiel:
+
+\t`"Münster Kemperweg" Haus Date: 19950601-19980130 Cap: Dach`\t zeigt alle Bilder mit den
+Tags "Münster Kemperweg"und Haus, die das Wort "Dach" in der Caption haben und zwischen
+dem 1.6.1995 und dem 30.1.1998 gemacht wurden.
+
 
 Um eine Übersicht zu sehen welche Tags verfügbar sind, schreibe einfach `Tags`!
 Viel Spass!🥳
