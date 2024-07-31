@@ -78,6 +78,12 @@ class ACDReceive:
             self.get_medium = self.get_medium_local
 
         self.data_path = storage_path
+        self.joke_llm = LLM(
+            model="Open-Orca/Mistral-7B-OpenOrca",
+            token=self.anyscale_token,
+            task_prompt=("Erzähl mir einen kurzen Witz zum Thema Fotografieren"),
+            temperature=0.6,
+        )
 
     def db_setup(self, db_path: str):
         db = pd.read_csv(db_path)
@@ -367,11 +373,3 @@ class ACDReceive:
         logger.info("Starting bot")
         self.updater.start_polling()
         self.updater.idle()
-
-    def set_llms(self):
-        self.joke_llm = LLM(
-            model="Open-Orca/Mistral-7B-OpenOrca",
-            token=self.anyscale_token,
-            task_prompt=("Erzähl mir einen kurzen Witz zum Thema Fotografieren"),
-            temperature=0.6,
-        )
