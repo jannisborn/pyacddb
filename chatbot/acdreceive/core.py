@@ -78,12 +78,18 @@ class ACDReceive:
             self.get_medium = self.get_medium_local
 
         self.data_path = storage_path
+        self.joke_llm = LLM(
+            model="Open-Orca/Mistral-7B-OpenOrca",
+            token=self.anyscale_token,
+            task_prompt=("Erzähl mir einen kurzen Witz zum Thema Fotografieren"),
+            temperature=0.6,
+        )
 
     def db_setup(self, db_path: str):
         db = pd.read_csv(db_path)
         db["FileType"] = db["FileType"].replace("Portable Network Graphics", "png")
         db["FileType"] = db["FileType"].str.lower()
-        self.tags = list(db.columns)[list(db.columns).index("Tags") + 1 :]
+        self.tags = sorted(list(db.columns)[list(db.columns).index("Tags") + 1 :])
         db.columns = db.columns.str.lower()
         db = db.rename(columns={"name": "Name"})  # to avoid conflict with build-in
         db = db[~db.filetype.isin(["ordner", "xmp files"])]
@@ -155,7 +161,7 @@ class ACDReceive:
 
     def send_tag_distribution(self, update):
         message_buffer = "Die verfügbaren Tags und ihre Verbreitung:\n\n"
-        for tag in self.tags:
+        for tag in sorted(self.tags):
             tag_info = f"{tag}: {len(self.db[self.db[tag.lower().strip()]])}\n"
 
             # Check if adding this tag info will exceed the limit
@@ -367,11 +373,3 @@ class ACDReceive:
         logger.info("Starting bot")
         self.updater.start_polling()
         self.updater.idle()
-
-    def set_llms(self):
-        self.joke_llm = LLM(
-            model="Open-Orca/Mistral-7B-OpenOrca",
-            token=self.anyscale_token,
-            task_prompt=("Erzähl mir einen kurzen Witz zum Thema Fotografieren"),
-            temperature=0.6,
-        )
