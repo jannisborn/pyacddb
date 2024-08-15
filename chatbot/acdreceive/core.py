@@ -140,7 +140,7 @@ class ACDReceive:
 
     def handle_text_message(self, update, context):
 
-        if random() < 0.005:
+        if random() < 0.01:
             output = self.joke_llm(update.message.text)
             self.return_message(update, output)
             return
