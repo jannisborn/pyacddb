@@ -1,4 +1,5 @@
 from copy import deepcopy
+from together import Together
 
 import requests
 
@@ -41,33 +42,50 @@ class LLM:
         self,
         token: str,
         task_prompt: str,
-        model: str = "mistralai/Mistral-7B-Instruct-v0.1",
+        model: str = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
         temperature: float = 0.7,
     ):
         self.token = token
-        self.api_base = "https://api.endpoints.anyscale.com/v1"
-        self.session = requests.Session()
-        self.url = f"{self.api_base}/chat/completions"
-        self.model = model
         self.temperature = temperature
-        self.task_prompt = task_prompt
-        self.body = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": task_prompt},
-            ],
-            "temperature": temperature,
-        }
-        self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.task = task_prompt
+        self.message_history = [{"role": "system", "content": task_prompt}]
+        self.model = model
+        self.client = Together(api_key=token)
         self.counter = 0
 
-    def send_message(self, message: str):
-        body = deepcopy(self.body)
-        body["messages"].append({"role": "user", "content": message})
-        with self.session.post(self.url, headers=self.headers, json=body) as resp:
-            output = resp.json()
+    def _add_to_message_history(self, role: str, content: str):
+        self.message_history.append({"role": role, "content": content})
+
+    def send_message(self, message: str, history: bool = True):
+        # Add user's message to the conversation history.
+        self._add_to_message_history("user", message)
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=self.message_history,
+            stream=True,
+            temperature=self.temperature,
+        )
+
+        # Process and stream the response.
+        response_content = ""
         self.counter += 1
-        return output["choices"][0]["message"]["content"]
+
+        if not history:
+            self.message_history = self.message_history[:-1]
+
+        for token in response:
+            delta = token.choices[0].delta.content
+            # End token indicating the end of the response.
+            if token.choices[0].finish_reason:
+                if history:
+                    self._add_to_message_history("assistant", response_content)
+                break
+            else:
+                # Append content to message and stream it.
+                response_content += delta
+                yield delta
 
     def __call__(self, *args, **kwargs):
-        return self.send_message(*args, **kwargs)
+        response = self.send_message(*args, **kwargs)
+        full_text = "".join([part for part in response])
+        return full_text

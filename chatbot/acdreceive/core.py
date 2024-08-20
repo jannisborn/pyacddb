@@ -35,11 +35,11 @@ class ACDReceive:
             db_path: Path to the metadata file
             storage_path: Path to the directory containing the images. This can be a
                 local directory or a cloud storage bucket.
-            secrets: A dictionary containing the Telegram and AnyScale tokens
+            secrets: A dictionary containing the Telegram and LLM API tokens
         """
         # Load tokens and initialize variables
         self.telegram_token = secrets["telegram"]
-        self.anyscale_token = secrets["anyscale"]
+        self.llm_token = secrets["together"]
 
         # Initialize language preferences dictionary
         self.user_prefs = defaultdict(dict)
@@ -79,8 +79,8 @@ class ACDReceive:
 
         self.data_path = storage_path
         self.joke_llm = LLM(
-            model="Open-Orca/Mistral-7B-OpenOrca",
-            token=self.anyscale_token,
+            model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+            token=self.llm_token,
             task_prompt=("Erzähl mir einen kurzen Witz zum Thema Fotografieren"),
             temperature=0.6,
         )
@@ -140,7 +140,7 @@ class ACDReceive:
 
     def handle_text_message(self, update, context):
 
-        if random() < 0.005:
+        if random() < 0.01:
             output = self.joke_llm(update.message.text)
             self.return_message(update, output)
             return

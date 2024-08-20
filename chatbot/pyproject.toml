@@ -16,6 +16,7 @@ python-telegram-bot = "13.7"
 black = "^24.3.0"
 pillow = "^10.3.0"
 pytest = "^8.2.2"
+together = "^1.2.7"
 
 
 [build-system]
