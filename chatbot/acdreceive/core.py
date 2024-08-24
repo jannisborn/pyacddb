@@ -97,6 +97,7 @@ class ACDReceive:
         db["year"] = pd.to_datetime(db["dbdate"]).dt.year
         db["month"] = pd.to_datetime(db["dbdate"]).dt.month
         db["day"] = pd.to_datetime(db["dbdate"]).dt.day
+        db['date_object'] = pd.to_datetime(db['dbdate'])
 
         if any(
             [x not in IMAGE_FORMATS and x not in VIDEO_FORMATS for x in db["filetype"]]
@@ -237,7 +238,7 @@ class ACDReceive:
             )
 
             result_df = self.lookup(update, query)
-            result_df = result_df.sample(frac=1)
+            result_df = result_df.sort_values(by='date_object', ascending=False)
             if len(result_df) == 0:
                 self.return_message(update, f"Null Ergebnisse für Anfrage: {userquery}")
                 return
