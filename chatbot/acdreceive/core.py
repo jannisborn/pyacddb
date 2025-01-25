@@ -102,7 +102,7 @@ class ACDReceive:
         if any(
             [x not in IMAGE_FORMATS and x not in VIDEO_FORMATS for x in db["filetype"]]
         ):
-            raise ValueError(f"Unknown format in data: {db['filetype'].value_counts()}")
+            logger.error(f"Unknown format in data: {db['filetype'].value_counts()}")
         self.db = db
 
     def setup(self, update, context) -> bool:
