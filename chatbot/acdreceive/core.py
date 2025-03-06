@@ -104,14 +104,14 @@ class ACDReceive:
             raise ValueError(f"Unknown format in data: {db['filetype'].value_counts()}")
         self.db = db
 
-    def setup(self, update, context) -> bool:
+    def setup(self, update, context, force: bool=False) -> bool:
         """
         Set up the user's language preference and collect their name.
         Returns whether the user message was part of the setup process.
         """
         user_id = update.message.from_user.id
         # Check if the user's language preference is already set
-        if user_id not in self.user_prefs:
+        if force or user_id not in self.user_prefs:
             context.bot.send_chat_action(
                 chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING
             )
@@ -140,15 +140,18 @@ class ACDReceive:
 
     def handle_text_message(self, update, context):
 
+        message = update.message.text.lower().strip()
+        
+        force = message.startswith('help')
+        is_setting_up = self.setup(update, context, force=force)
+        if is_setting_up:
+            return
+
         if random() < 0.01:
             output = self.joke_llm(update.message.text)
             self.return_message(update, output)
             return
-        is_setting_up = self.setup(update, context)
-        if is_setting_up:
-            return
-
-        message = update.message.text.lower().strip()
+        
         if message == "tags":
             update.message.reply_text(
                 f"Die aktuelle Datenbank hat {len(self.db)} Einträge und {len(self.tags)} tags"
