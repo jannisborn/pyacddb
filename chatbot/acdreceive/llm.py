@@ -33,6 +33,7 @@ dem 1.6.1995 und dem 30.1.1998 gemacht wurden.
 
 
 Um eine Übersicht zu sehen welche Tags verfügbar sind, schreibe einfach `Tags`!
+Um diese Nachricht zu sehen, schreib `Help`.
 Viel Spass!🥳
 """
 
