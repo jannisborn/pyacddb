@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger
 
-from acdreceive.core import ACDReceive
+from pyacddb.acdreceive.core import ACDReceive
 
 log_level = os.getenv("LOGLEVEL", "INFO")
 logger.configure(handlers=[{"sink": sys.stdout, "level": log_level}])
