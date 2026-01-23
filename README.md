@@ -15,9 +15,9 @@ Follow these steps to install `pyacddb` using Poetry, ensuring seamless manageme
 2. Clone the `pyacddb` repository:
 
 ```bash
-git clone https://github.com/yourusername/pyacddb.git
+git clone https://github.com/jannisborn/pyacddb.git
 cd pyacddb
-poetry install
+uv sync
 ```
 
 ## Usage
