@@ -24,6 +24,13 @@ from .llm import INSTRUCTION_MESSAGE, LLM
 from .metadata import IMAGE_FORMATS, VIDEO_FORMATS
 from .utils import Query, parse_blocks
 
+TELEGRAM_UPLOAD_LIMIT_MB = 50
+TELEGRAM_UPLOAD_LIMIT_BYTES = TELEGRAM_UPLOAD_LIMIT_MB * 1024 * 1024
+
+
+def media_exceeds_telegram_upload_limit(content: bytes) -> bool:
+    return len(content) > TELEGRAM_UPLOAD_LIMIT_BYTES
+
 
 class ACDReceive:
     PAGESIZE = 10
@@ -333,13 +340,22 @@ class ACDReceive:
             if medium is None:
                 await self.return_message(update, f"Failed to retrieve {path}")
                 continue
+            if media_exceeds_telegram_upload_limit(medium):
+                size = len(medium) / (1024**2)
+                await self.return_message(
+                    update,
+                    f"Video zu groß für Telegram Bot Uploads ({size:.1f} MB, Limit: "
+                    f"{TELEGRAM_UPLOAD_LIMIT_MB} MB): {path}",
+                )
+                continue
             if file_extension in IMAGE_FORMATS:
                 await context.bot.send_photo(
                     chat_id=chat_id, photo=medium, caption=text
                 )
             elif file_extension in VIDEO_FORMATS:
-                await self.return_message(update, f"Video {file_extension}")
-                await context.bot.send_video(chat_id=chat_id, video=medium)
+                await context.bot.send_video(
+                    chat_id=chat_id, video=medium, caption=text
+                )
             else:
                 await self.return_message(
                     update, f"Unsupported file format: {file_extension}"
