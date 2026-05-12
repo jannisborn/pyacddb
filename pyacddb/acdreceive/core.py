@@ -1,20 +1,22 @@
+import asyncio
 import os
-import time
 from collections import defaultdict
 from datetime import datetime
 from random import random
 from typing import Any, Dict
 
 import pandas as pd
-import telegram
 from loguru import logger
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
+from telegram.constants import ChatAction
 from telegram.ext import (
+    ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
-    Filters,
+    ContextTypes,
+    Defaults,
     MessageHandler,
-    Updater,
+    filters,
 )
 
 from .dataclient import Client
@@ -44,17 +46,18 @@ class ACDReceive:
         self.user_prefs = defaultdict(dict)
 
         # Initialize the bot and dispatcher
-        self.updater = Updater(self.telegram_token, use_context=True)
-        self.dp = self.updater.dispatcher
+        self.application = (
+            ApplicationBuilder()
+            .token(self.telegram_token)
+            .defaults(Defaults(tzinfo=datetime.now().astimezone().tzinfo))
+            .build()
+        )
+        self.dp = self.application
 
         # Register handlers
+        self.dp.add_handler(CommandHandler("start", self.start))
         self.dp.add_handler(
-            CommandHandler(
-                "start", lambda update, context: update.message.reply_text("Hi!")
-            )
-        )
-        self.dp.add_handler(
-            MessageHandler(Filters.text & (~Filters.command), self.handle_text_message)
+            MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_text_message)
         )
         self.dp.add_handler(CallbackQueryHandler(self.callback_query_handler))
 
@@ -84,6 +87,9 @@ class ACDReceive:
             temperature=0.6,
         )
 
+    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Hi!")
+
     def db_setup(self, db_path: str):
         db = pd.read_csv(db_path)
         db["FileType"] = db["FileType"].replace("Portable Network Graphics", "png")
@@ -104,7 +110,9 @@ class ACDReceive:
             logger.error(f"Unknown format in data: {db['filetype'].value_counts()}")
         self.db = db
 
-    def setup(self, update, context, force: bool = False) -> bool:
+    async def setup(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, force: bool = False
+    ) -> bool:
         """
         Set up the user's language preference and collect their name.
         Returns whether the user message was part of the setup process.
@@ -112,21 +120,25 @@ class ACDReceive:
         user_id = update.message.from_user.id
         # Check if the user's language preference is already set
         if force or user_id not in self.user_prefs:
-            context.bot.send_chat_action(
-                chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING
+            await context.bot.send_chat_action(
+                chat_id=update.message.chat_id, action=ChatAction.TYPING
             )
-            update.message.reply_text("Willkommen!\nDas is Michaels ACDReceiver!📷")
-            time.sleep(0.7)
-            update.message.reply_text("Hier ist die Anleitung!")
-            time.sleep(1)
-            response_message = update.message.reply_text(
+            await update.message.reply_text(
+                "Willkommen!\nDas is Michaels ACDReceiver!📷"
+            )
+            await asyncio.sleep(0.7)
+            await update.message.reply_text("Hier ist die Anleitung!")
+            await asyncio.sleep(1)
+            response_message = await update.message.reply_text(
                 INSTRUCTION_MESSAGE, parse_mode="Markdown"
             )
             try:
-                context.bot.unpin_all_chat_messages(chat_id=update.message.chat_id)
+                await context.bot.unpin_all_chat_messages(
+                    chat_id=update.message.chat_id
+                )
             except Exception:
                 logger.warning("Failed to unpin messages")
-            context.bot.pin_chat_message(
+            await context.bot.pin_chat_message(
                 chat_id=update.message.chat_id,
                 message_id=response_message.message_id,
                 disable_notification=False,
@@ -135,48 +147,52 @@ class ACDReceive:
             return True
         return False
 
-    def return_message(self, update: Update, text: str) -> Message:
-        return update.message.reply_text(text)
+    async def return_message(self, update: Update, text: str) -> Message:
+        message = (
+            update.message if getattr(update, "message", None) is not None else update
+        )
+        return await message.reply_text(text)
 
-    def handle_text_message(self, update, context):
-
+    async def handle_text_message(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
         message = update.message.text.lower().strip()
 
         force = message.startswith("help")
-        is_setting_up = self.setup(update, context, force=force)
+        is_setting_up = await self.setup(update, context, force=force)
         if is_setting_up:
             return
 
         if random() < 0.01:
             output = self.joke_llm(update.message.text)
-            self.return_message(update, output)
+            await self.return_message(update, output)
             return
 
         if message == "tags":
-            update.message.reply_text(
+            await update.message.reply_text(
                 f"Die aktuelle Datenbank hat {len(self.db)} Einträge und {len(self.tags)} tags"
             )
-            time.sleep(0.6)
-            self.send_tag_distribution(update)
+            await asyncio.sleep(0.6)
+            await self.send_tag_distribution(update)
             return
 
-        self.search_tags_in_db(update, context)
+        await self.search_tags_in_db(update, context)
 
-    def send_tag_distribution(self, update):
+    async def send_tag_distribution(self, update: Update):
         message_buffer = "Die verfügbaren Tags und ihre Verbreitung:\n\n"
         for tag in sorted(self.tags):
             tag_info = f"{tag}: {len(self.db[self.db[tag.lower().strip()]])}\n"
 
             # Check if adding this tag info will exceed the limit
             if len(message_buffer) + len(tag_info) > 1000:
-                update.message.reply_text(message_buffer)
+                await update.message.reply_text(message_buffer)
                 message_buffer = ""  # Reset the buffer after sending
 
             message_buffer += tag_info
 
         # Send any remaining text in the buffer
         if message_buffer:
-            update.message.reply_text(message_buffer)
+            await update.message.reply_text(message_buffer)
 
     def query_date(
         self, df: pd.DataFrame, start_date: str, end_date: str
@@ -191,8 +207,8 @@ class ACDReceive:
 
         Parameters:
             df (pd.DataFrame): A DataFrame with separate columns 'Year', 'Month', and 'Day'.
-            start_date (str): A string specifying the starting date, formatted as 'YYYYMMDD'
-            end_date (str): A string specifying the end date, formatted as 'YYYYMMDD'.
+            start_date: A string specifying the starting date, formatted as 'YYYYMMDD'
+            end_date: A string specifying the end date, formatted as 'YYYYMMDD'.
 
         Returns:
             pd.DataFrame: A DataFrame containing the rows that fall within the specified date range.
@@ -204,6 +220,7 @@ class ACDReceive:
         end_year = int(end_date[:4])
         end_month = int(end_date[4:6]) if len(end_date) > 4 else 12
         end_day = int(end_date[6:]) if len(end_date) > 6 else 31
+
         # Create a boolean mask to filter DataFrame rows within the date range
         mask = (
             (df["year"] >= start_year)
@@ -217,9 +234,10 @@ class ACDReceive:
 
         return df[mask]
 
-    def search_tags_in_db(self, update, context):
+    async def search_tags_in_db(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
         """Search for tags in the database when a message is received."""
-
         try:
             user_id = update.message.from_user.id
             # Parse the message
@@ -239,52 +257,62 @@ class ACDReceive:
                 + (f"; Date: {start} - {end}" if start is not None else "")
             )
 
-            result_df = self.lookup(update, query)
+            result_df = await self.lookup(update, query)
             result_df = result_df.sort_values(by="date_object", ascending=False)
             if len(result_df) == 0:
-                self.return_message(update, f"Null Ergebnisse für Anfrage: {userquery}")
+                await self.return_message(
+                    update, f"Null Ergebnisse für Anfrage: {userquery}"
+                )
                 return
-            elif len(result_df) == len(self.db):
-                self.return_message(
+            if len(result_df) == len(self.db):
+                await self.return_message(
                     update,
                     "Das hat nicht geklappt. Probier's nochmal mit einer anderen Anfrage!",
                 )
+                return
+
+            self.user_prefs[user_id]["current_result"] = result_df
+            result_count = len(result_df)
+            if result_count > self.PAGESIZE:
+                msg = f"{result_count} Ergebnisse, hier sind die ersten {self.PAGESIZE}"
             else:
-                self.user_prefs[user_id]["current_result"] = result_df
-                l = len(result_df)
-                if l > self.PAGESIZE:
-                    msg = f"{l} Ergebnisse, hier sind die ersten {self.PAGESIZE}"
-                else:
-                    msg = f"Hier sind die {l} Ergebnisse"
-                self.return_message(update, msg)
-                self.keep_displaying_results(update, context, user_id)
+                msg = f"Hier sind die {result_count} Ergebnisse"
+            await self.return_message(update, msg)
+            await self.keep_displaying_results(update, context, user_id)
 
         except Exception as e:
             response = f"An error occurred: {e}"
-            self.return_message(update, response)
+            await self.return_message(update, response)
 
     def get_medium_local(self, path: str):
         """Reads a file from local storage and returns its content."""
         with open(os.path.join(self.data_path, path), "rb") as medium:
-            return medium
+            return medium.read()
 
     def get_medium_cloud(self, path: str):
         """Retrieves file content from cloud storage and returns it."""
         content = self.data_client.get_file_content(path)
         return content
 
-    def keep_displaying_results(
-        self, update, context, user_id: int, start_index: int = 0
+    async def keep_displaying_results(
+        self,
+        update,
+        context: ContextTypes.DEFAULT_TYPE,
+        user_id: int,
+        start_index: int = 0,
     ):
-
         result_df = self.user_prefs[user_id]["current_result"]
         end_index = start_index + self.PAGESIZE
         current_page = result_df.iloc[start_index:end_index]
+        message = (
+            update.message if getattr(update, "message", None) is not None else update
+        )
+        chat_id = message.chat_id
 
         # Send each image to the chat
-        for i, row in current_page.iterrows():
+        for _, row in current_page.iterrows():
             # logger.debug(f"FOlder {row.folder} and {type(row.folder)}")
-            path = row.folder.split("Public\Fotos\\")[-1] + row.Name
+            path = row.folder.split("Public\\Fotos\\")[-1] + row.Name
             _, file_extension = os.path.splitext(path)
             file_extension = file_extension[1:].lower()
             text = ""
@@ -303,17 +331,17 @@ class ACDReceive:
 
             medium = self.get_medium(path)
             if medium is None:
-                self.return_message(update, f"Failed to retrieve {path}")
+                await self.return_message(update, f"Failed to retrieve {path}")
                 continue
             if file_extension in IMAGE_FORMATS:
-                context.bot.send_photo(
-                    chat_id=update.message.chat_id, photo=medium, caption=text
+                await context.bot.send_photo(
+                    chat_id=chat_id, photo=medium, caption=text
                 )
             elif file_extension in VIDEO_FORMATS:
-                self.return_message(update, f"Video {file_extension}")
-                context.bot.send_video(chat_id=update.message.chat_id, video=medium)
+                await self.return_message(update, f"Video {file_extension}")
+                await context.bot.send_video(chat_id=chat_id, video=medium)
             else:
-                self.return_message(
+                await self.return_message(
                     update, f"Unsupported file format: {file_extension}"
                 )
 
@@ -327,27 +355,26 @@ class ACDReceive:
                 ]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            update.message.reply_text(
-                "Willst du mehr sehen?", reply_markup=reply_markup
-            )
+            await message.reply_text("Willst du mehr sehen?", reply_markup=reply_markup)
         else:
-            update.message.reply_text("Das war alles 🙂")
+            await message.reply_text("Das war alles 🙂")
 
-    def lookup(self, update, query: Query) -> pd.DataFrame:
+    async def lookup(self, update, query: Query) -> pd.DataFrame:
         df = self.db
 
         for tag in query.tags:
             if tag not in df.columns:
-                self.return_message(
+                await self.return_message(
                     update,
                     f"Tag {tag.capitalize()} nicht in der Datenbank vorhanden! Wird ignoriert.",
                 )
                 continue
             df = df[df[tag.lower()]]
-            self.return_message(
+            await self.return_message(
                 update,
                 f"Tag {tag.capitalize()} gefunden, jetzt noch {len(df)} Einträge.",
             )
+
         # Now check for caption and date
         if query.caption != "":
             df = df[df.caption.str.lower().str.contains(query.caption.lower())]
@@ -356,12 +383,14 @@ class ACDReceive:
 
         return df
 
-    def callback_query_handler(self, update, context):
+    async def callback_query_handler(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ):
         """
         Handles callback queries for pagination of special coins display.
         """
         query = update.callback_query
-        query.answer()
+        await query.answer()
         user_id = query.from_user.id
         data = query.data
 
@@ -370,9 +399,8 @@ class ACDReceive:
             logger.debug(
                 f"Continue displaying from entry {start_index} for user {user_id}"
             )
-            self.keep_displaying_results(query, context, user_id, start_index)
+            await self.keep_displaying_results(query, context, user_id, start_index)
 
     def run(self):
         logger.info("Starting bot")
-        self.updater.start_polling()
-        self.updater.idle()
+        self.application.run_polling()
