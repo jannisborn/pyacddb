@@ -1,7 +1,7 @@
 from copy import deepcopy
-from together import Together
 
 import requests
+from together import Together
 
 INSTRUCTION_MESSAGE = """
 Du kannst Fotos anfragen indem du mir einen oder mehrere Tags sendest. Ich werde dann

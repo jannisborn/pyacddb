@@ -8,9 +8,9 @@ Such files have headers like `<ACDDB Version="1.20.0">` and store metadata about
 
 ## Installation
 
-Follow these steps to install `pyacddb` using Poetry, ensuring seamless management of dependencies:
+Follow these steps to install `pyacddb` using `uv`, ensuring reproducible dependency management from `uv.lock`:
 
-1. Install Poetry if it's not already set up on your system. You can find installation instructions on the [Poetry website](https://python-poetry.org/docs/).
+1. Install `uv` if it's not already set up on your system. You can find installation instructions in the [uv documentation](https://docs.astral.sh/uv/getting-started/installation/).
 
 2. Clone the `pyacddb` repository:
 
@@ -18,6 +18,13 @@ Follow these steps to install `pyacddb` using Poetry, ensuring seamless manageme
 git clone https://github.com/jannisborn/pyacddb.git
 cd pyacddb
 uv sync
+```
+
+3. Run commands inside the managed environment:
+
+```bash
+uv run python app.py
+uv run pytest
 ```
 
 ## Usage

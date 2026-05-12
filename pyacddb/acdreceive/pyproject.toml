@@ -2,7 +2,6 @@
 name = "acdreceive"
 version = "0.1.0"
 description = ""
-readme = "README.md"
 requires-python = "==3.12.*"
 license = "MIT"
 authors = [{ name = "jannisborn", email = "jannis.born@gmx.de" }]
@@ -16,15 +15,31 @@ dependencies = [
   "together>=1.2.7,<2.0.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-  "black>=24.3.0,<25.0.0",
+  "isort>=5.13.2,<6.0.0",
+  "pre-commit>=3.7.1,<4.0.0",
   "pytest>=8.2.2,<9.0.0",
+  "ruff>=0.8.0,<1.0.0",
 ]
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["acdreceive"]
+
+[tool.setuptools.package-dir]
+acdreceive = "."
+
 [tool.uv.sources]
 pyacddb = { path = ".." }
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.isort]
+profile = "black"
+line_length = 88

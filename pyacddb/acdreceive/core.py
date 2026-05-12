@@ -24,7 +24,6 @@ from .utils import Query, parse_blocks
 
 
 class ACDReceive:
-
     PAGESIZE = 10
 
     def __init__(self, db_path: str, storage_path: str, secrets: Dict[str, Any]):
@@ -97,7 +96,7 @@ class ACDReceive:
         db["year"] = pd.to_datetime(db["dbdate"]).dt.year
         db["month"] = pd.to_datetime(db["dbdate"]).dt.month
         db["day"] = pd.to_datetime(db["dbdate"]).dt.day
-        db['date_object'] = pd.to_datetime(db['dbdate'])
+        db["date_object"] = pd.to_datetime(db["dbdate"])
 
         if any(
             [x not in IMAGE_FORMATS and x not in VIDEO_FORMATS for x in db["filetype"]]
@@ -105,7 +104,7 @@ class ACDReceive:
             logger.error(f"Unknown format in data: {db['filetype'].value_counts()}")
         self.db = db
 
-    def setup(self, update, context, force: bool=False) -> bool:
+    def setup(self, update, context, force: bool = False) -> bool:
         """
         Set up the user's language preference and collect their name.
         Returns whether the user message was part of the setup process.
@@ -142,8 +141,8 @@ class ACDReceive:
     def handle_text_message(self, update, context):
 
         message = update.message.text.lower().strip()
-        
-        force = message.startswith('help')
+
+        force = message.startswith("help")
         is_setting_up = self.setup(update, context, force=force)
         if is_setting_up:
             return
@@ -152,7 +151,7 @@ class ACDReceive:
             output = self.joke_llm(update.message.text)
             self.return_message(update, output)
             return
-        
+
         if message == "tags":
             update.message.reply_text(
                 f"Die aktuelle Datenbank hat {len(self.db)} Einträge und {len(self.tags)} tags"
@@ -241,7 +240,7 @@ class ACDReceive:
             )
 
             result_df = self.lookup(update, query)
-            result_df = result_df.sort_values(by='date_object', ascending=False)
+            result_df = result_df.sort_values(by="date_object", ascending=False)
             if len(result_df) == 0:
                 self.return_message(update, f"Null Ergebnisse für Anfrage: {userquery}")
                 return
