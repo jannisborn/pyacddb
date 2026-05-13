@@ -20,7 +20,6 @@ def standardize_quotes(text: str) -> str:
 
 
 class Query:
-
     def __init__(self, tags, caption, start_date, end_date):
         self.tags = tags
         self.caption = caption
