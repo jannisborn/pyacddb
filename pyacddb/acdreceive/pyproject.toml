@@ -1,0 +1,45 @@
+[project]
+name = "acdreceive"
+version = "0.1.0"
+description = ""
+requires-python = "==3.12.*"
+license = "MIT"
+authors = [{ name = "jannisborn", email = "jannis.born@gmx.de" }]
+
+dependencies = [
+  "requests>=2.31.0,<3.0.0",
+  "loguru>=0.7.2,<1.0.0",
+  "pandas>=2.2.1,<3.0.0",
+  "python-telegram-bot==13.7",
+  "pillow>=10.3.0,<11.0.0",
+  "together>=1.2.7,<2.0.0",
+]
+
+[dependency-groups]
+dev = [
+  "isort>=5.13.2,<6.0.0",
+  "pre-commit>=3.7.1,<4.0.0",
+  "pytest>=8.2.2,<9.0.0",
+  "ruff>=0.8.0,<1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["acdreceive"]
+
+[tool.setuptools.package-dir]
+acdreceive = "."
+
+[tool.uv.sources]
+pyacddb = { path = ".." }
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.isort]
+profile = "black"
+line_length = 88
