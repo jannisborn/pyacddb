@@ -167,7 +167,7 @@ class ACDReceive:
 
         force = message.startswith("help")
         is_setting_up = await self.setup(update, context, force=force)
-        
+
         if is_setting_up:
             return
 
