@@ -6,6 +6,8 @@ from loguru import logger
 from PIL import Image
 from requests.auth import HTTPBasicAuth
 
+from .metadata import IMAGE_FORMATS
+
 
 class Client:
     def __init__(self, host: str, root: str, username: str, password: str):
@@ -26,7 +28,9 @@ class Client:
             content = response.content
             size = len(content) / (1024**2)
             logger.debug(f"Retrieved file {remote_path} of size {size:.3f} MB")
-            if size > 5:
+            _, file_extension = os.path.splitext(remote_path)
+            file_extension = file_extension[1:].lower()
+            if size > 5 and file_extension in IMAGE_FORMATS:
                 logger.info(
                     f"Image {remote_path} is larger than 5MB ({size:.3f}), downscaling..."
                 )
@@ -34,6 +38,10 @@ class Client:
                 size_bytes = len(content)
                 size_mb = size_bytes / (1024 * 1024)
                 logger.info(f"Downscaled image size: {size_mb:.2f} MB")
+            elif size > 5:
+                logger.info(
+                    f"File {remote_path} is larger than 5MB ({size:.3f}); sending without image downscaling."
+                )
 
             return content
         else:
